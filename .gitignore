@@ -1,0 +1,5 @@
+pi-cluster/
+scratch/
+AnsibleCollection01/
+Ansible-Run-/
+vault_vars.yml
