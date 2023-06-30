@@ -3,6 +3,13 @@ scratch/
 AnsibleCollection01/
 Ansible-Run-Analyser/
 vault_vars.yml
-cluster_ansible/Ansible-Run-Analyser
 .git/
-.vscode/
+.vscode/cluster_ansible/
+cluster_ansible/vault_vars.yml
+cluster_ansible/pi-cluster/
+cluster_ansible/scratch/
+cluster_ansible/AnsibleCollection01/
+cluster_ansible/Ansible-Run-Analyser/
+cluster_ansible/vault_vars.yml
+cluster_ansible/.git/
+cluster_ansible/.vscode/

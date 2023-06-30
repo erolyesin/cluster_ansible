@@ -1,9 +1,0 @@
-ansible_user: ubuntu
-ansible_password: 376500
-
-user_credentials:
-  - { username: 'ubuntu', password: '376500' }
-  - { username: 'erol', password: '3765' }
-
-new_user_credentials:
-  - { username: 'erol', password: '$6$rounds=656000$kHlX63bCkMifhMuE$Wt/1IiB//yT7MkZ7K0lZNJT.fy8NcJ3j9Zp1AiEObTt3jfzVo1g.zDgmzHSAOJZge8et1RzHG3o0eGzyiCGBb0' }
