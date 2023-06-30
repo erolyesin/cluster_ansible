@@ -1,0 +1,58 @@
+---
+
+- name: Prometheus Support
+  hosts: all
+  become: true
+  vars:
+    node_exporter_version: 1.6.0
+    node_exporter_arch: linux-arm64
+    download_url: https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.{{ node_exporter_arch }}.tar.gz
+
+  tasks:
+    - ansible.builtin.name: Download Node Exporter
+      get_url:
+        url: "{{ download_url }}"
+        dest: "/tmp/node_exporter-{{ node_exporter_version }}.{{ node_exporter_arch }}.tar.gz"
+
+    - ansible.builtin.name: Extract Node Exporter
+      unarchive:
+        src: "/tmp/node_exporter-{{ node_exporter_version }}.{{ node_exporter_arch }}.tar.gz"
+        dest: "/usr/local/bin"
+        remote_src: yes
+        creates: "/usr/local/bin/node_exporter-{{ node_exporter_version }}.{{ node_exporter_arch }}/node_exporter"
+
+    - name: Set Node Exporter executable
+      file:
+        path: "/usr/local/bin/node_exporter-{{ node_exporter_version }}.{{ node_exporter_arch }}/node_exporter"
+        mode: 0755
+
+    - name: Create Node Exporter systemd service file
+      copy:
+        dest: /etc/systemd/system/node_exporter.service
+        content: |
+          [Unit]
+          Description=Node Exporter
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          User=root
+          Group=root
+          Type=simple
+          ExecStart=/usr/local/bin/node_exporter-{{ node_exporter_version }}.{{ node_exporter_arch }}/node_exporter
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: 0644
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Node Exporter service
+      systemd:
+        name: node_exporter
+        enabled: yes
+        state: started
+
+...

@@ -1,0 +1,56 @@
+- name: Initial learning playbook
+  hosts: node-10.local
+  vars:
+    user_name: "erol"
+    user_dir: "/home/erol"
+    work_dir: "{{ user_dir }}/workspace"
+    venv_dir: "{{ work_dir }}/venvs"
+    default_env: "{{ venv_dir }}/default"
+  gather_facts: true
+  tasks:
+    - name: Install python3-pip python3-venv python3-virtualenvwrapper
+      become: yes
+      apt:
+        pkg:
+        - python3-pip
+        - python3-venv
+        - python3-virtualenvwrapper
+        state: latest
+        update_cache: true
+      async: 3600  # Maximum runtime in seconds
+      register: apt_task
+
+    - name: Create a directory for the virtual environment
+      ansible.builtin.file:
+        path: "{{ venv_dir }}"
+        state: directory
+
+    - name: Create a Python3 virtual environment
+      shell: python3 -m venv {{ default_env }}
+      args:
+        creates: "{{ default_env }}"
+
+    - name: Install package into the virtual environment
+      pip:
+        name: virtualenvwrapper
+        virtualenv: "{{ default_env }}"
+
+    - name: Append several lines to ~/.bashrc
+      ansible.builtin.blockinfile:
+        path: "{{ user_dir }}/.bashrc"
+        block: |
+          source {{ default_env }}/bin/activate
+          # VIRTUALENVWRAPPER SETTINGS
+          export PYENV_VIRTUALENVWRAPPER_PREFER_PYVENV="false"
+          export WORKON_HOME={{ venv_dir }}
+          export VIRTUALENVWRAPPER_HOOK_DIR=$WORKON
+          export PROJECT_HOME={{ work_dir }}
+          # export VIRTUALENVWRAPPER_VIRTUALENV_ARGS='--no-site-packages'
+          source {{ default_env }}/bin/virtualenvwrapper.sh
+
+    - name: Source virtualenvwrapper.sh
+      shell: |
+        source {{ default_env }}/bin/virtualenvwrapper.sh
+        # Your following commands...
+      args:
+        executable: /bin/bash

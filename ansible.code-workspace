@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../prometheus"
+		},
+		{
+			"path": "../../../../srv"
+		}
+	],
+	"settings": {
+		"ansible.python.interpreterPath": "/home/erol/workspace/venvs/ansible/bin/python"
+	}
+}

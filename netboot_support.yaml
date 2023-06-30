@@ -1,0 +1,25 @@
+---
+
+tasks:
+      - name: Configure Raspberry Pis
+        hosts: all
+        gather_facts: false
+        become: true
+        vars_files:
+              - vars.yml
+
+      - name: Update and upgrade all packages
+        apt:
+        upgrade: dist
+        update_cache: true
+
+      - name: Install raspi-config
+        apt:
+              name: raspi-config
+              state: present
+
+      - name: Run raspi-config non-interactive
+        command:
+              cmd: raspi-config nonint do_boot_behaviour B2
+
+...

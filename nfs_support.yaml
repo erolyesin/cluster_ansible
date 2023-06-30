@@ -1,0 +1,92 @@
+---
+- name: Append NFS mount points to /etc/fstab and create mount point directories
+  hosts: node-10.local
+  gather_facts: true
+
+  tasks:
+    - name: Install nfs-common
+      become: true
+      become_method: sudo
+      apt:
+        name: nfs-common
+        update_cache: yes
+        state: present
+      async: 3600  # Maximum runtime in seconds
+      register: apt_task
+      failed_when: apt_task.failed
+
+    - name: Create mount point directories
+      become: true
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - /mnt/lower
+        - /mnt/scratch
+        - /mnt/cluster
+        - /local/usr
+        - /local/home
+        - /local/etc
+        - /local/var
+        - /local/root
+        - /local/snap
+        - /local/opt
+        - /local/.work/usr
+        - /local/.work/home
+        - /local/.work/etc
+        - /local/.work/var
+        - /local/.work/root
+        - /local/.work/snap
+        - /local/.work/opt
+
+    # - name: Ensure no conflicting NFS mounts are present
+    #   become: true
+    #   ansible.builtin.mount:
+    #     path: "{{ item.path }}"
+    #     state: unmounted
+    #   loop:
+    #     - { path: "/mnt/{lower,scratch}" }
+    #     - { path: "/mnt/{lower,scratch}" }
+
+    - name: Delete entries to fstab
+      become: yes
+      ansible.builtin.lineinfile:
+        dest: /etc/fstab
+        regexp: "{{ item.regexp }}"
+        state: absent
+      loop:
+        - { regexp: "^192" }
+        - { regexp: "^(overlay|#overlay)" }
+
+    - name: Add entries to fstab
+      become: yes
+      ansible.builtin.lineinfile:
+        dest: /etc/fstab
+        regexp: "^{{ item.regexp|default('')|regex_escape() }}\\s"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - { line: " " }
+        - { line: "192.168.200.1:/root/ubun/lower   /mnt/lower    nfs   ro,hard,vers=4.2,rsize=1048576,wsize=1048576,proto=tcp 0 0" }
+        - { line: "192.168.200.1:/shared-scratch    /mnt/scratch  nfs   rw,hard,vers=4.2,rsize=1048576,wsize=1048576,proto=tcp 0 0" }
+        - { line: "192.168.200.1:/root/cluster      /mnt/cluster  nfs   rw,hard,vers=4.2,rsize=1048576,wsize=1048576,proto=tcp 0 0" }
+        - { line: " " }
+        - { line: "overlay    /home   overlay     lowerdir=/mnt/lower/home,upperdir=/local/home,workdir=/local/.work/home     0 0" }
+        - { line: "overlay    /etc    overlay     lowerdir=/mnt/lower/etc,upperdir=//local/etc,workdir=/local/.work/etc       0 0" }
+        - { line: "overlay    /var    overlay     lowerdir=/mnt/lower/var,upperdir=/local/var,workdir=/local/.work/var        0 0" }
+        - { line: "overlay    /opt    overlay     lowerdir=/mnt/lower/opt,upperdir=/local/opt,workdir=/local/.work/opt        0 0" }
+        - { line: "overlay    /usr    overlay     lowerdir=/mnt/lower/usr,upperdir=/local/usr,workdir=/local/.work/usr        0 0"}
+        - { line: "overlay    /snap   overlay     lowerdir=/mnt/lower/snap,upperdir=/local/snap,workdir=/local/.work/snap     0 0" }
+        - { line: "overlay    /root   overlay     lowerdir=/mnt/lower/root,upperdir=/local/root,workdir=/local/.work/root     0 0" }
+
+    - name: systemctl daemon-reload
+      become: true
+      ansible.builtin.command:
+        cmd: systemctl daemon-reload
+
+    # - name: Mount all filesystems according to fstab
+    #   become: true
+    #   ansible.builtin.command:
+    #     cmd: mount -a
+
+...

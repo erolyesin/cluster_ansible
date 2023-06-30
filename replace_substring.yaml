@@ -1,0 +1,35 @@
+---
+- name: Replace substring in a file
+  hosts: all
+  become: true
+  vars:
+    file: '/etc/fstab'
+    old_substring: 'rw,hard,intr,vers=4.2,rsize=1048576,wsize=1048576,proto=tcp'
+    new_substring: 'rw,hard,vers=4.2,rsize=1048576,wsize=1048576,proto=tcp'
+    line_to_remove: 'rw,hard,intr,vers=4\.2,rsize=1048576,wsize=1048576,proto=tcp'
+  tasks:
+    - name: Remove line {{ line_to_remove }}
+      replace:
+        path: '{{ file }}'
+        regexp: '^\\1.*\\2$'
+        replace: ''
+
+    - name: Replace substring {{ old_substring }}
+      replace:
+        path: '{{ file }}'
+        regexp: '{{ old_substring }}'
+        replace: '{{ new_substring }}'
+
+    - name: Replace substring /srv
+      replace:
+        path: '{{ file }}'
+        regexp: '/srv'
+        replace: ''
+
+    - name: systemctl daemon-reload
+      shell:
+        systemctl daemon-reload
+      args:
+        executable: /bin/bash
+
+...

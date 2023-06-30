@@ -1,0 +1,21 @@
+---
+# - name: Add gpio-fan to cmdline.txt
+#   hosts: all
+#   become: true
+#   tasks:
+#     - name: Add dtoverlay line to cmdline.txt
+#       lineinfile:
+#         path: /boot/firmware/cmdline.txt
+#         line: 'dtoverlay=gpio-fan,gpiopin=18,temp=55000'
+#         state: present
+
+- name: Replace gpio-fan line in cmdline.txt
+  hosts: all
+  become: true
+  tasks:
+    - name: Replace dtoverlay line in cmdline.txt
+      replace:
+        path: /boot/firmware/cmdline.txt
+        regexp: '^.*dtoverlay=gpio-fan,gpiopin=18,temp=55000.*$'
+        replace: 'dtoverlay=gpio-fan,gpiopin=18,temp=55000'
+...

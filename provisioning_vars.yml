@@ -1,0 +1,43 @@
+user_dir: "/home/{{ username }}"
+work_dir: "{{ user_dir }}/workspace"
+venv_dir: "{{ work_dir }}/venvs"
+default_env: "{{ venv_dir }}/default"
+ansible_user: ubuntu
+ansible_password: 376500
+
+new_apt_packages:
+  - { name: "*", state: latest }
+  - { name: "raspi-config", state: latest }
+  - { name: "acl", state: latest }
+  - { name: "python3-dev", state: latest }
+  - { name: "python3-virtualenv", state: latest }
+  - { name: "python3-virtualenvwrapper", state: latest }
+  - { name: "python3-setuptools", state: latest }
+  - { name: "python3-wheel", state: latest }
+  - { name: "python3-venv", state: latest }
+  - { name: "python3-pip", state: latest }
+  - { name: "git", state: latest }
+  - { name: "nfs-common", state: latest }
+  - { name: "docker.io", state: latest }
+  - { name: "libffi-dev", state: latest }
+  - { name: "libssl-dev", state: latest }
+  - { name: "libjpeg-dev", state: latest }
+  - { name: "libtiff-dev", state: latest }
+  - { name: "libfreetype6-dev", state: latest }
+  - { name: "liblcms2-dev", state: latest }
+
+new_py_packages:
+  - { name: "numpy", state: latest }
+  - { name: "pandas", state: latest }
+  - { name: "matplotlib", state: latest }
+  - { name: "scipy", state: latest }
+  - { name: "scikit-learn", state: latest }
+  - { name: "tensorflow", state: latest }
+  - { name: "virtualenv", state: latest }
+  - { name: "virtualenvwrapper", state: latest }
+  - { name: "ansible", state: latest }
+  - { name: "jupyterlab", state: latest }
+  - { name: "docker", state: latest }
+  - { name: "docker-compose", state: latest }
+  - { name: "logger-wrapper", state: latest }
+  - { name: "timer-event", state: latest }

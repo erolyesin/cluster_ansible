@@ -1,0 +1,181 @@
+---
+
+- name: Provision all nodes
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Include encrypted variable file
+      ansible.builtin.include_vars: vault_vars.yml
+
+    - name: Include unencrypted variable file
+      ansible.builtin.include_vars: provisioning_vars.yml
+
+    - name: Remove old host keys
+      ansible.builtin.known_hosts:
+        path: "/home/{{ item.username }}/.ssh/known_hosts"
+        name: "{{ inventory_hostname }}"
+        state: absent
+      become: true
+      become_user: "{{ item.username }}"
+      loop: "{{ user_credentials }}"
+
+    - name: Ensure group "sudo", "admin" and "super" exists
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - sudo
+        - admin
+        - super
+
+    - name: Add users
+      ansible.builtin.user:
+        name: "{{ item.username }}"
+        password: "{{ item.password }}"
+        groups: sudo,admin,super
+        append: true
+        createhome: true
+        shell: /bin/bash
+        update_password: on_create
+      loop: "{{ new_user_credentials }}"
+
+    - name: Allow new user to have sudo privileges
+      ansible.builtin.lineinfile:
+        dest: /etc/sudoers
+        line: '%super ALL=(ALL) NOPASSWD: ALL'
+        validate: 'visudo -cf %s'
+
+    - name: Update, upgrade and install apt packages
+      ansible.builtin.apt:
+        name: "{{ item.name }}"
+        state: "{{ item.state }}"
+        update_cache: true
+        cache_valid_time: 3600
+      loop: "{{ new_apt_packages }}"
+      async: 3600  # Maximum runtime in seconds
+      register: apt_task
+
+    - name: Create a directories for the user's environment
+      ansible.builtin.file:
+        path: "/home/{{ item.username }}/workspace/venvs/"
+        state: directory
+        owner: "{{ item.username }}"
+        group: "{{ item.username }}"
+        mode: '0755'
+      loop: "{{ user_credentials }}"
+
+    - name: Create directories off the root
+      ansible.builtin.file:
+        path: "/{{ item.0 }}/{{ item.1 }}"
+        state: directory
+        mode: '0777'
+      loop:
+        - ['local', 'etc']
+        - ['local', 'usr']
+        - ['local', 'var']
+        - ['local', 'opt']
+        - ['local', 'root']
+        - ['local', 'snap']
+        - ['local', 'home']
+        - ['mnt', 'nfs-root']
+        - ['mnt', 'node-root']
+        - ['mnt', 'local-root']
+        - ['mnt', 'cluster']
+        - ['mnt', 'shared']
+        - ['local/work', 'etc']
+        - ['local/work', 'usr']
+        - ['local/work', 'var']
+        - ['local/work', 'opt']
+        - ['local/work', 'root']
+        - ['local/work', 'snap']
+        - ['local/work', 'home']
+
+    # - name: Debug user_credentials
+    #   debug:
+    #     var: user_credentials
+
+    - name: Delete entries from ~/.bashrc
+      become: true
+      ansible.builtin.lineinfile:
+        dest: /etc/hosts
+        regexp: "{{ item.regexp }}"
+        state: absent
+      loop:
+        - { regexp: "^source.*/bin/activate" }
+        - { regexp: "^# VIRTUALENVWRAPPER SETTINGS" }
+        - { regexp: "^export PYENV_VIRTUALENVWRAPPER_PREFER_PYVENV" }
+        - { regexp: "^export WORKON_HOME" }
+        - { regexp: "^export VIRTUALENVWRAPPER_HOOK_DIR=$WORKON" }
+        - { regexp: "^export PROJECT_HOME=" }
+        - { regexp: "^# export VIRTUALENVWRAPPER_VIRTUALENV_ARGS" }
+        - { regexp: "^source.* /bin/virtualenvwrapper.sh" }
+
+    - name: Append several lines to ~/.bashrc
+      ansible.builtin.blockinfile:
+        path: "/home/{{ item.username }}/.bashrc"
+        block: |
+          source "/home/{{ item.username }}/workspace/venvs/default/bin/activate"
+          # VIRTUALENVWRAPPER SETTINGS
+          export PYENV_VIRTUALENVWRAPPER_PREFER_PYVENV="false"
+          export WORKON_HOME=/home/{{ item.username }}/workspace/venvs
+          export VIRTUALENVWRAPPER_HOOK_DIR=$WORKON
+          export PROJECT_HOME=/home/{{ item.username }}/workspace/venvs
+          # export VIRTUALENVWRAPPER_VIRTUALENV_ARGS='--no-site-packages'
+          source /home/{{ item.username }}/workspace/venvs/default/bin/virtualenvwrapper.sh
+      loop: "{{ user_credentials }}"
+
+    - name: Delete entries from /etc/hosts
+      become: true
+      ansible.builtin.lineinfile:
+        dest: /etc/hosts
+        regexp: "{{ item.regexp }}"
+        state: absent
+      loop:
+        - { regexp: "^192" }
+        - { regexp: "^fe80::201:2eff:fe84:70a3" }
+
+    - name: Add entries to /etc/hosts
+      become: true
+      ansible.builtin.lineinfile:
+        dest: /etc/hosts
+        regexp: "^{{ item.regexp | default('') | regex_escape() }}\\s"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - { line: "   " }
+        - { line: "192.168.200.1   node-00  node-00.local ub01 ub01.local erol-ub01 erol-ub01.local n00" }
+        - { line: "192.168.200.199 switch" }
+        - { line: "   " }
+        - { line: "192.168.200.10  node-10 node-10.local n10" }
+        - { line: "192.168.200.20  node-20 node-20.local n20" }
+        - { line: "192.168.200.30  node-30 node-30.local n30" }
+        - { line: "192.168.200.40  node-40 node-40.local n40" }
+        - { line: "192.168.200.50  node-50 node-50.local n50" }
+        - { line: "192.168.200.60  node-60 node-60.local n60"}
+        - { line: "   " }
+        - { line: "fe80::201:2eff:fe84:70a3 node-00 node-00.local ub01 ub01.local erol-ub01 erol-ub01.local n00" }
+
+    - name: Create a Python3 virtual environment
+      become_user: "{{ item.username }}"
+      ansible.builtin.command:
+        cmd: virtualenv "/home/{{ item.username }}/workspace/venvs/default"
+        creates: "/home/{{ item.username }}/workspace/venvs/default"
+      loop: "{{ user_credentials }}"
+
+    - name: Install package into the virtual environment
+      ansible.builtin.pip:
+        name: "{{ item.1.name }}"
+        virtualenv: "/home/{{ item.0.username }}/workspace/venvs/default"
+        state: "{{ item.1.state }}"
+      become: true
+      become_user: "{{ item.0.username }}"
+      loop: "{{ user_credentials | product(new_py_packages) | list }}"
+
+    - name: Reload daemons using systemctl
+      become: true
+      ansible.builtin.command:
+        cmd: systemctl daemon-reload
+
+...
