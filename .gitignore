@@ -1,5 +1,8 @@
 pi-cluster/
 scratch/
 AnsibleCollection01/
-Ansible-Run-/
+Ansible-Run-Analyser/
 vault_vars.yml
+cluster_ansible/Ansible-Run-Analyser
+.git/
+.vscode/
